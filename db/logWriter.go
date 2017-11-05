@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"hash/crc32"
@@ -9,13 +10,13 @@ import (
 )
 
 type LogWriter struct {
-	destfile *os.File
+	destfile *bufio.Writer
 	crc32q   *crc32.Table
 }
 
 func NewLogWriter(file *os.File) *LogWriter {
 	logWriter := &LogWriter{}
-	logWriter.destfile = file
+	logWriter.destfile = bufio.NewWriter(file)
 	logWriter.crc32q = crc32.MakeTable(0xD5828281)
 
 	return logWriter
@@ -47,7 +48,7 @@ func (logWriter *LogWriter) emitPhysicalRecord(record []byte) error {
 	if _, err := logWriter.destfile.Write(buf.Bytes()); err != nil {
 		log.Println("failed to write log, ", err)
 	} else {
-		logWriter.destfile.Sync()
+		logWriter.destfile.Flush()
 	}
 
 	return nil

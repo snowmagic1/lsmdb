@@ -8,7 +8,8 @@ import (
 	"os"
 )
 
-const LOG_HEADER_SIZE = 6
+// LOG_HEADER_SIZE = 4 bytes(checksum) + 2 bytes(length)
+const LOG_HEADER_SIZE = 4 + 2
 
 type LogReader struct {
 	logFile *os.File
