@@ -1,12 +1,15 @@
 package table
 
 import (
+	"bufio"
 	"errors"
-	"io"
+	"os"
 )
 
 type Writer struct {
-	writer io.Writer
+	writer *bufio.Writer
+
+	prevKey []byte
 }
 
 func (w *Writer) Get(key []byte) ([]byte, error) {
@@ -15,4 +18,16 @@ func (w *Writer) Get(key []byte) ([]byte, error) {
 
 func (w *Writer) Set(key, val []byte) error {
 
+}
+
+func (w *Writer) Close() error {
+
+}
+
+func NewWriter(f *os.File) *Writer {
+	w := &Writer{
+		prevKey: make([]byte, 0, 256),
+	}
+
+	w.writer = bufio.NewWriter(f)
 }
