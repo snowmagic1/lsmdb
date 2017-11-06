@@ -2,28 +2,41 @@ package table
 
 import (
 	"os"
+	"sync"
+
+	"github.com/snowmagic1/lsmdb/db"
 )
 
-type blockHandle struct {
-	offset, length uint64
-}
-
-type block []byte
-
 type Reader struct {
-	file *os.File
+	mu     sync.RWMutex
+	file   *os.File
+	err    error
+	keyCmp db.Comparer
+
+	metaBH   blockHandle
+	indexBH  blockHandle
+	filterBH blockHandle
 }
 
 func (r *Reader) Get(key []byte) (val []byte, err error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.err != nil {
+		return nil, r.err
+	}
 
 }
 
-func (r *Reader) Set(key, val []byte) error {
-	return errors.New("can't set on reader")
-}
+func (r *Reader) find(key []byte, useFilter bool) (rKey, value []byte, err error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-func (r *Reader) Delete(key, val []byte) error {
-	return errors.New("can't set on reader")
+	if r.err != nil {
+		err = r.err
+		return
+	}
+
 }
 
 func NewReader(f *os.File) *Reader {

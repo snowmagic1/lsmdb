@@ -1,8 +1,23 @@
 package db
 
+type Compression uint8
+
+const (
+	CompressionNo     Compression = 0
+	CompressionSnappy Compression = 1
+)
+
 type Options struct {
-	BlockSize int
-	Comparer  Comparer
+	BlockRestartInterval int
+	BlockSize            int
+	Comparer             Comparer
+}
+
+func (o *Options) GetBlockRestartInterval() int {
+	if o == nil || o.BlockRestartInterval <= 0 {
+		return 16
+	}
+	return o.BlockRestartInterval
 }
 
 func (o *Options) GetBlockSize() int {
