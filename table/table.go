@@ -6,8 +6,6 @@ type blockHandle struct {
 	offset, length uint64
 }
 
-type block []byte
-
 type indexEntry struct {
 	bh     blockHandle
 	keyLen int

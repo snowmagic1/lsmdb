@@ -1,19 +1,19 @@
 package table
 
 import (
-	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"hash/crc32"
+	"io"
 	"log"
 	"os"
 
 	"github.com/snowmagic1/lsmdb/db"
+	"github.com/snowmagic1/lsmdb/util"
 )
 
 type Writer struct {
-	writer *bufio.Writer
+	writer io.Writer
 	err    error
 
 	// options
@@ -91,13 +91,12 @@ func (w *Writer) writeCurrDataBlock() error {
 }
 
 func (w *Writer) writeRawBlock(b []byte, compression db.Compression) (blockHandle, error) {
-	crc32q := crc32.MakeTable(0xD5828281)
-	crc := crc32.Checksum(b, crc32q)
-
 	w.scratch[0] = uint8(compression)
-	binary.LittleEndian.PutUint32(w.scratch[1:5], crc)
+	b = append(b, w.scratch[:1]...)
+	crc := util.NewCRC(b).Value()
 
-	b = append(b, w.scratch[:5]...)
+	binary.LittleEndian.PutUint32(w.scratch[0:4], crc)
+	b = append(b, w.scratch[:4]...)
 
 	if _, err := w.writer.Write(b); err != nil {
 		log.Println("failed to write data block")
@@ -170,7 +169,7 @@ func NewWriter(f *os.File, o *db.Options) *Writer {
 	w.indexBlock.restartInternal = 1
 	w.indexBlock.scratch = w.scratch[0:]
 
-	w.writer = bufio.NewWriter(f)
+	w.writer = f
 
 	return w
 }
