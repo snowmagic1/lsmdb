@@ -2,6 +2,7 @@ package table
 
 import (
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -18,7 +19,10 @@ func TestTableFooter(t *testing.T) {
 		t.Errorf("test: failed to create writer %v", writer.err)
 	}
 
-	writer.Append([]byte{1, 2, 3}, []byte{4, 5, 6})
+	key := []byte{1, 2, 3}
+	val := []byte{4, 5, 6}
+
+	writer.Append(key, val)
 	writer.Close()
 	fileForWriter.Sync()
 	fileForWriter.Close()
@@ -32,5 +36,10 @@ func TestTableFooter(t *testing.T) {
 	reader, err := NewReader(fileForReader, fi.Size())
 	if err != nil || reader.err != nil {
 		t.Errorf("test: failed to create reader %v %v", err, reader.err)
+	}
+
+	retVal, err := reader.Get(key)
+	if !reflect.DeepEqual(retVal, val) {
+		t.Errorf("test: Get key return incorrect result, expected [%v] returned [%v]", val, retVal)
 	}
 }

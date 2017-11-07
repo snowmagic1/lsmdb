@@ -11,18 +11,15 @@ import (
 	"github.com/snowmagic1/lsmdb/util"
 )
 
+var (
+	ErrNotFound = errors.ErrNotFound
+)
+
 type ErrCorrupted struct {
 	Pos    int64
 	Size   int64
 	Kind   string
 	Reason string
-}
-
-type block struct {
-	bh            blockHandle
-	data          []byte
-	restartsLen   int
-	restartOffset int
 }
 
 func (e *ErrCorrupted) Error() string {
@@ -48,6 +45,17 @@ type Reader struct {
 	filterBH blockHandle
 
 	indexBlock *block
+}
+
+func (r *Reader) newBlockIter(b *block) *blockIter {
+	bi := &blockIter{
+		tr:           r,
+		block:        b,
+		restartStart: 0,
+		restartLen:   b.restartsLen,
+	}
+
+	return bi
 }
 
 func (r *Reader) readRawBlock(bh blockHandle, verifyChecksum bool) ([]byte, error) {
@@ -85,10 +93,10 @@ func (r *Reader) readBlock(bh blockHandle, verifyChecksum bool) (*block, error) 
 
 	restartsLen := int(binary.LittleEndian.Uint32(data[len(data)-4:]))
 	b := &block{
-		bh:            bh,
-		data:          data,
-		restartsLen:   restartsLen,
-		restartOffset: len(data) - (restartsLen+1)*4,
+		bh:             bh,
+		data:           data,
+		restartsLen:    restartsLen,
+		restartsOffset: len(data) - (restartsLen+1)*4,
 	}
 
 	return b, nil
@@ -102,7 +110,13 @@ func (r *Reader) Get(key []byte) (val []byte, err error) {
 		return nil, r.err
 	}
 
-	return nil, nil
+	retKey, val, err := r.find(key, false)
+	if err == nil && r.keyCmp.Compare(retKey, key) != 0 {
+		val = nil
+		err = ErrNotFound
+	}
+
+	return
 }
 
 func (r *Reader) find(key []byte, useFilter bool) (rKey, value []byte, err error) {
@@ -112,6 +126,12 @@ func (r *Reader) find(key []byte, useFilter bool) (rKey, value []byte, err error
 	if r.err != nil {
 		err = r.err
 		return
+	}
+
+	indexIter := r.newBlockIter(r.indexBlock)
+
+	if !indexIter.Seek(key) {
+		return nil, nil, nil
 	}
 
 	return
