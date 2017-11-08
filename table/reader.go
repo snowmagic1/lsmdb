@@ -49,10 +49,12 @@ type Reader struct {
 
 func (r *Reader) newBlockIter(b *block) *blockIter {
 	bi := &blockIter{
-		tr:           r,
-		block:        b,
-		restartStart: 0,
-		restartLen:   b.restartsLen,
+		tr:          r,
+		block:       b,
+		rsStartIdx:  0,
+		rsEndIdx:    b.restartsLen,
+		offsetStart: 0,
+		offsetEnd:   b.restartsOffset,
 	}
 
 	return bi
@@ -137,13 +139,14 @@ func (r *Reader) find(key []byte, useFilter bool) (rKey, value []byte, err error
 	return
 }
 
-func NewReader(f io.ReaderAt, size int64) (*Reader, error) {
+func NewReader(f io.ReaderAt, size int64, o *db.Options) (*Reader, error) {
 	if f == nil {
 		return nil, errors.New("nil file")
 	}
 
 	r := &Reader{
 		reader: f,
+		keyCmp: o.GetComparer(),
 	}
 
 	if size < footerLen {

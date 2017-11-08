@@ -33,7 +33,7 @@ func TestTableFooter(t *testing.T) {
 		t.Errorf("test: cannot get file size %v", err)
 	}
 
-	reader, err := NewReader(fileForReader, fi.Size())
+	reader, err := NewReader(fileForReader, fi.Size(), nil)
 	if err != nil || reader.err != nil {
 		t.Errorf("test: failed to create reader %v %v", err, reader.err)
 	}
