@@ -45,8 +45,7 @@ func (w *Writer) Append(key, val []byte) error {
 
 	// filter
 
-	// flush it if thereis bh pending
-	w.addIndexEntryForPendingDataBlock(key)
+	w.finishPendingIndexBH(key)
 	w.dataBlock.append(key, val)
 
 	if w.dataBlock.len() >= w.blockSize {
@@ -59,7 +58,7 @@ func (w *Writer) Append(key, val []byte) error {
 	return nil
 }
 
-func (w *Writer) addIndexEntryForPendingDataBlock(key []byte) {
+func (w *Writer) finishPendingIndexBH(key []byte) {
 	if w.pendingDataBH.length == 0 {
 		return
 	}
@@ -126,7 +125,7 @@ func (w *Writer) Close() error {
 	// index
 
 	// append for the last data block
-	w.addIndexEntryForPendingDataBlock(nil)
+	w.finishPendingIndexBH(nil)
 
 	w.indexBlock.finish()
 	indexBH, err := w.writeRawBlock(w.indexBlock.buf, db.CompressionNo)

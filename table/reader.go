@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/snowmagic1/lsmdb/db"
@@ -55,6 +56,8 @@ func (r *Reader) newBlockIter(b *block) *blockIter {
 		rsEndIdx:    b.restartsLen,
 		offsetStart: 0,
 		offsetEnd:   b.restartsOffset,
+		currKey:     make([]byte, 0),
+		dir:         dirSOI,
 	}
 
 	return bi
@@ -121,7 +124,17 @@ func (r *Reader) Get(key []byte) (val []byte, err error) {
 	return
 }
 
-func (r *Reader) find(key []byte, useFilter bool) (rKey, value []byte, err error) {
+func (r *Reader) getDataIter(dataBH blockHandle, verifyChecksum bool) *blockIter {
+	b, err := r.readBlock(dataBH, true)
+	if err != nil {
+		log.Println("failed to read data block")
+		return nil
+	}
+
+	return r.newBlockIter(b)
+}
+
+func (r *Reader) find(key []byte, useFilter bool) (rKey, rVal []byte, err error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -133,8 +146,27 @@ func (r *Reader) find(key []byte, useFilter bool) (rKey, value []byte, err error
 	indexIter := r.newBlockIter(r.indexBlock)
 
 	if !indexIter.Seek(key) {
-		return nil, nil, nil
+		err = ErrNotFound
+		return
 	}
+
+	dataBH, n := decodeBlockHandle(indexIter.Val())
+	if n == 0 {
+		r.err = r.newErrCorruptedBH(r.indexBH, "bad data block")
+		return nil, nil, r.err
+	}
+
+	if useFilter {
+
+	}
+
+	dataIter := r.getDataIter(dataBH, true)
+	if !dataIter.Seek(key) {
+		return nil, nil, ErrNotFound
+	}
+
+	rKey = dataIter.Key()
+	rVal = dataIter.Val()
 
 	return
 }

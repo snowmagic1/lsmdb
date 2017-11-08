@@ -39,3 +39,30 @@ func (b *block) seek(cmp db.Comparer, rsSearchStart, rsSearchEnd int, key []byte
 
 	return
 }
+
+func (b *block) entry(offset int) (key, val []byte, sharedLen, entryLen int, err error) {
+	if offset >= b.restartsOffset {
+		if offset != b.restartsOffset {
+			err = &ErrCorrupted{Reason: "offset not aligned"}
+		}
+		return
+	}
+	v0, n0 := binary.Uvarint(b.data[offset:])       // shared len
+	v1, n1 := binary.Uvarint(b.data[offset+n0:])    // non-shared len
+	v2, n2 := binary.Uvarint(b.data[offset+n0+n1:]) // val len
+
+	headerLen := n0 + n1 + n2
+	entryLen = headerLen + int(v1) + int(v2)
+
+	if n0 <= 0 || n1 <= 0 || n2 <= 0 || offset+entryLen > b.restartsOffset {
+		err = &ErrCorrupted{Reason: "entry corrupted"}
+		return
+	}
+
+	key = b.data[offset+headerLen : offset+headerLen+int(v1)]
+	val = b.data[offset+headerLen+int(v1) : offset+entryLen]
+
+	sharedLen = int(v0)
+
+	return
+}
