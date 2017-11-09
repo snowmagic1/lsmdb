@@ -11,14 +11,14 @@ type blockWriter struct {
 	buf             []byte
 	nEntries        int
 	prevKey         []byte
-	restartKeyLens  []uint32
+	restartOffsets  []uint32
 	scratch         []byte
 }
 
 func (w *blockWriter) append(key, val []byte) {
 	nShared := 0
 	if w.nEntries%w.restartInternal == 0 {
-		w.restartKeyLens = append(w.restartKeyLens, uint32(len(w.buf)))
+		w.restartOffsets = append(w.restartOffsets, uint32(len(w.buf)))
 	} else {
 		nShared = db.SharedPrefixLen(w.prevKey, key)
 	}
@@ -38,10 +38,10 @@ func (w *blockWriter) append(key, val []byte) {
 
 func (w *blockWriter) finish() {
 	if w.nEntries == 0 {
-		w.restartKeyLens = append(w.restartKeyLens, 0)
+		w.restartOffsets = append(w.restartOffsets, 0)
 	}
 
-	restarts := append(w.restartKeyLens, uint32(len(w.restartKeyLens)))
+	restarts := append(w.restartOffsets, uint32(len(w.restartOffsets)))
 	buf4 := w.scratch[:4]
 	for _, x := range restarts {
 		binary.LittleEndian.PutUint32(buf4, x)
@@ -52,11 +52,11 @@ func (w *blockWriter) finish() {
 func (w *blockWriter) reset() {
 	w.buf = w.buf[:0]
 	w.nEntries = 0
-	w.restartKeyLens = w.restartKeyLens[:0]
+	w.restartOffsets = w.restartOffsets[:0]
 }
 
 func (w *blockWriter) len() int {
-	restartLen := len(w.restartKeyLens)
+	restartLen := len(w.restartOffsets)
 	if restartLen == 0 {
 		restartLen = 1
 	}

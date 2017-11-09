@@ -63,10 +63,12 @@ func (w *Writer) finishPendingIndexBH(key []byte) {
 		return
 	}
 
-	seperator := w.keyCmp.Separator(w.scratch[:0], w.dataBlock.prevKey, key)
+	tmp := w.keyCmp.Separator(w.scratch[:0], w.dataBlock.prevKey, key)
+	separator := make([]byte, len(tmp))
+	copy(separator, tmp)
 
 	n := encodeBlockHandle(w.bHScratch, w.pendingDataBH)
-	w.indexBlock.append(seperator, w.bHScratch[:n])
+	w.indexBlock.append(separator, w.bHScratch[:n])
 
 	w.pendingDataBH = blockHandle{}
 }
