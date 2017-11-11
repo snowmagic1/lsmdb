@@ -11,6 +11,7 @@ type Options struct {
 	BlockRestartInterval int
 	BlockSize            int
 	Comparer             Comparer
+	ReadOnly             bool
 }
 
 func (o *Options) GetBlockRestartInterval() int {
@@ -34,4 +35,12 @@ func (o *Options) GetComparer() Comparer {
 	}
 
 	return o.Comparer
+}
+
+func (o *Options) GetReadOnly() bool {
+	if o == nil {
+		return false
+	}
+
+	return o.ReadOnly
 }
