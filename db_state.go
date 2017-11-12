@@ -72,6 +72,21 @@ func (db *DB) newMem(n int) (mem *memDB, err error) {
 	return
 }
 
+func (db *DB) getMems() (memdb, fmemdb *memDB) {
+	db.memMu.RLock()
+	defer db.memMu.RUnlock()
+
+	if db.memdb != nil {
+		db.memdb.incref()
+	}
+
+	if db.frozenMemdb != nil {
+		db.frozenMemdb.incref()
+	}
+
+	return db.memdb, db.frozenMemdb
+}
+
 func (db *DB) mpoolGet(n int) *memDB {
 	var mdb *memdb.DB
 	select {
@@ -88,4 +103,8 @@ func (db *DB) mpoolGet(n int) *memDB {
 		db: db,
 		DB: mdb,
 	}
+}
+
+func (db *DB) getSeq() uint64 {
+	return atomic.LoadUint64(&db.seq)
 }

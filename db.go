@@ -46,6 +46,8 @@ func openDB(s *session) (*DB, error) {
 		seq: s.stSeqNum,
 		// memdb
 		memPool: make(chan *memdb.DB, 1),
+		//snapshot
+		snapsList: list.New(),
 		//write
 		batchPool:  sync.Pool{New: newBatch},
 		writeLockC: make(chan struct{}, 1),
@@ -102,4 +104,50 @@ func (db *DB) recoverJournal() error {
 	}
 
 	return nil
+}
+
+func (db *DB) Get(key []byte, ro *db.ReadOptions) (val []byte, err error) {
+	if err = db.ok(); err != nil {
+		return
+	}
+
+	se := db.acquireSnapshot()
+	defer db.releaseSnapshot(se)
+
+	return db.get(key, se.seq, ro)
+}
+
+func (db *DB) get(key []byte, seq uint64, ro *db.ReadOptions) (val []byte, err error) {
+	ikey := makeInternalKey(key, KeyTypeMax, seq)
+
+	memdb, fmemdb := db.getMems()
+	for _, m := range []*memDB{memdb, fmemdb} {
+		if m == nil {
+			continue
+		}
+		defer m.decref()
+
+		if ok, mv, me := memGet(m.DB, ikey, db.s.keycmp); ok {
+			return append([]byte{}, mv...), me
+		}
+	}
+
+	return
+}
+
+func memGet(mdb *memdb.DB, ikey internalKey, keycmp db.Comparer) (ok bool, mv []byte, err error) {
+	mk, mv, err := mdb.Find(ikey)
+	if err == nil {
+		ik := internalKey(mk)
+		if keycmp.Compare(ik.userKey(), ikey.userKey()) == 0 {
+			if ik.keyType() == KeyTypeDelete {
+				return true, nil, ErrNotFound
+			}
+			return true, mv, nil
+		}
+	} else if err != ErrNotFound {
+		return true, nil, err
+	}
+
+	return
 }

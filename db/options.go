@@ -15,6 +15,8 @@ const (
 	GiB = MiB * 1024
 )
 
+type Strict uint
+
 var (
 	DefaultBlockCacher                   = LRUCacher
 	DefaultBlockCacheCapacity            = 8 * MiB
@@ -129,4 +131,25 @@ func (wo *WriteOptions) GetSync() bool {
 	}
 
 	return wo.Sync
+}
+
+type ReadOptions struct {
+	DontFillCache bool
+	Strict        Strict
+}
+
+func (ro *ReadOptions) GetDontFillCache() bool {
+	if ro == nil {
+		return false
+	}
+
+	return ro.DontFillCache
+}
+
+func (ro *ReadOptions) GetStrict(strict Strict) bool {
+	if ro == nil {
+		return false
+	}
+
+	return ro.Strict&strict != 0
 }

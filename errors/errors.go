@@ -7,9 +7,7 @@
 // Package errors provides common error types used throughout leveldb.
 package errors
 
-import (
-	"errors"
-)
+import "errors"
 
 // Common errors.
 var (
