@@ -1,13 +1,15 @@
-package util
+package lsmdb_test
 
 import (
 	"bytes"
 	"testing"
+
+	"github.com/snowmagic1/lsmdb"
 )
 
 func TestMakeKey(t *testing.T) {
 	userKey := []byte{1, 2, 3, 4}
-	k := makeInternalKey(userKey, KeyTypeSet, 12)
+	k := lsmdb.makeInternalKey(userKey, KeyTypeSet, 12)
 
 	if 0 != bytes.Compare(k.userKey(), userKey) {
 		t.Errorf("userKey mismatch, expected %v actual %v", userKey, k.userKey())
@@ -18,8 +20,8 @@ func TestCompareKey(t *testing.T) {
 	key1 := []byte{2, 3, 4}
 	key2 := []byte{1}
 
-	k1 := makeInternalKey(key1, KeyTypeSet, 12)
-	k2 := makeInternalKey(key2, KeyTypeSet, 1)
+	k1 := lsmdb.makeInternalKey(key1, KeyTypeSet, 12)
+	k2 := lsmdb.makeInternalKey(key2, KeyTypeSet, 1)
 
 	cmp := internalKeyComparer{}
 	comRes := cmp.Compare([]byte(k1), []byte(k2))

@@ -1,11 +1,18 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"syscall"
+)
+
+var (
+	errFileOpen = errors.New("leveldb/storage: file still open")
+	errReadOnly = errors.New("leveldb/storage: storage is read-only")
 )
 
 type fileLock interface {
@@ -21,14 +28,16 @@ func (fl *unixFileLock) release() error {
 }
 
 type fileStorage struct {
-	path     string
+	rootpath string
 	readOnly bool
+	mu       sync.Mutex
 	flock    fileLock
 	logw     *os.File
 	logSize  int64
+	open     int
 }
 
-func OpenFile(path string, readOnly bool) (Storage, error) {
+func OpenDiskStorage(path string, readOnly bool) (Storage, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if !fi.IsDir() {
 			return nil, fmt.Errorf("leveldb/storage: %s is not a directory", path)
@@ -71,7 +80,7 @@ func OpenFile(path string, readOnly bool) (Storage, error) {
 	}
 
 	fs := &fileStorage{
-		path:     path,
+		rootpath: path,
 		readOnly: readOnly,
 		flock:    flock,
 		logw:     logw,
@@ -133,4 +142,52 @@ func setFileLock(f *os.File, readonly, lock bool) error {
 	}
 
 	return syscall.Flock(int(f.Fd()), how|syscall.LOCK_NB)
+}
+
+func fsGenName(fd FileDesc) string {
+	switch fd.Type {
+	case TypeManifest:
+		return fmt.Sprintf("MANIFEST-%06d", fd.Num)
+	case TypeJournal:
+		return fmt.Sprintf("%06d.log", fd.Num)
+	case TypeTable:
+		return fmt.Sprintf("%06d.ldb", fd.Num)
+	case TypeTemp:
+		return fmt.Sprintf("%06d.tmp", fd.Num)
+	default:
+		panic("invalid file type")
+	}
+}
+
+func (fs *fileStorage) Create(fd FileDesc) (Writer, error) {
+	if !FileDescOk(fd) {
+		return nil, ErrInvalidFile
+	}
+
+	if fs.readOnly {
+		return nil, errReadOnly
+	}
+
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	if fs.open < 0 {
+		return nil, ErrClosed
+	}
+
+	fileName := filepath.Join(fs.rootpath, fsGenName(fd))
+	of, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return nil, err
+	}
+	fs.open++
+
+	return &fileWrap{File: of, fs: fs, fd: fd}, nil
+}
+
+type fileWrap struct {
+	*os.File
+	fs     *fileStorage
+	fd     FileDesc
+	closed bool
 }

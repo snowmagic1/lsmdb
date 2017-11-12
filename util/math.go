@@ -1,6 +1,6 @@
 package util
 
-func Max(x, y int) int {
+func MaxInt(x, y int) int {
 	if x > y {
 		return x
 	}

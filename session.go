@@ -8,12 +8,13 @@ import (
 )
 
 type session struct {
-	stSeqNum uint64
+	stNextFileNum int64
+	stSeqNum      uint64
 
 	stor     storage.Storage
 	storLock storage.Locker
-
-	o *cachedOptions
+	keycmp   db.Comparer
+	o        *cachedOptions
 }
 
 type cachedOptions struct {
@@ -32,10 +33,14 @@ func newSession(stor storage.Storage, o *db.Options) (s *session, err error) {
 	s = &session{
 		stor:     stor,
 		storLock: storLock,
+		keycmp:   o.GetComparer(),
 	}
 
 	if o != nil {
 		*s.o.Options = *o
+	} else {
+		no := &db.Options{}
+		s.o = &cachedOptions{Options: no}
 	}
 
 	return
