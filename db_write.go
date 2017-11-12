@@ -31,6 +31,10 @@ func (db *DB) putRecord(kt internalKeyType, key, val []byte, wo *db.WriteOptions
 	return db.writeLocked(batch, batch, merge, sync)
 }
 
+func (db *DB) unlockWrite() {
+	<-db.writeLockC
+}
+
 func (db *DB) writeLocked(batch, ourBatch *Batch, merge, sync bool) error {
 	// flush memdb
 
@@ -51,6 +55,8 @@ func (db *DB) writeLocked(batch, ourBatch *Batch, merge, sync bool) error {
 	}
 
 	db.addSeq(uint64(batchesLen(batches)))
+
+	db.unlockWrite()
 
 	return nil
 }

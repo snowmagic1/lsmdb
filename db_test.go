@@ -22,4 +22,9 @@ func TestBasics(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to put, %v", err)
 	}
+
+	err = db.Put([]byte(key), []byte(val), nil)
+	if err != nil {
+		t.Errorf("failed to put, %v", err)
+	}
 }
