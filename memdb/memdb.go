@@ -12,10 +12,10 @@ import (
 	"sync"
 
 	"github.com/snowmagic1/lsmdb/db"
+	"github.com/snowmagic1/lsmdb/errors"
+	"github.com/snowmagic1/lsmdb/iterator"
+	"github.com/snowmagic1/lsmdb/util"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
-	"github.com/syndtr/goleveldb/leveldb/errors"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // Common errors.

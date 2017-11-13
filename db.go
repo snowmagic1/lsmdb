@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/snowmagic1/lsmdb/db"
+	"github.com/snowmagic1/lsmdb/iterator"
 	"github.com/snowmagic1/lsmdb/memdb"
 	"github.com/snowmagic1/lsmdb/storage"
 
@@ -150,4 +151,15 @@ func memGet(mdb *memdb.DB, ikey internalKey, keycmp db.Comparer) (ok bool, mv []
 	}
 
 	return
+}
+
+func (db *DB) NewIterator() iterator.Iterator {
+	if err := db.ok(); err != nil {
+		return nil
+	}
+
+	se := db.acquireSnapshot()
+	defer db.releaseSnapshot(se)
+
+	return db.newIterator(se.seq, nil)
 }
