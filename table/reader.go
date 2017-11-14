@@ -80,9 +80,9 @@ func (r *Reader) readRawBlock(bh blockHandle, verifyChecksum bool) ([]byte, erro
 	}
 
 	switch db.Compression(data[bh.length]) {
-	case db.CompressionNo:
+	case db.NoCompression:
 		data = data[:bh.length]
-	case db.CompressionSnappy:
+	case db.SnappyCompression:
 	default:
 		return nil, r.newErrCorruptedBH(bh, fmt.Sprintf("unknown compression type"))
 	}

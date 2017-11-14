@@ -37,8 +37,12 @@ type DB struct {
 	writeLockC chan struct{}
 	writeAckC  chan error
 
+	// compaction
+	mcompCmdC chan cCmd
+
 	// close
 	closer io.Closer
+	closeC chan struct{}
 }
 
 func openDB(s *session) (*DB, error) {
@@ -49,10 +53,14 @@ func openDB(s *session) (*DB, error) {
 		memPool: make(chan *memdb.DB, 1),
 		//snapshot
 		snapsList: list.New(),
-		//write
+		// write
 		batchPool:  sync.Pool{New: newBatch},
 		writeLockC: make(chan struct{}, 1),
 		writeAckC:  make(chan error),
+		// compaction
+		mcompCmdC: make(chan cCmd),
+		// close
+		closeC: make(chan struct{}),
 	}
 
 	// recover journals
@@ -60,6 +68,8 @@ func openDB(s *session) (*DB, error) {
 		log.Println("failed to recover journal, ", err)
 		return nil, err
 	}
+
+	go db.mCompaction()
 
 	// remove obsoletes file
 

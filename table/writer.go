@@ -75,7 +75,7 @@ func (w *Writer) finishPendingIndexBH(key []byte) {
 
 func (w *Writer) writeCurrDataBlock() error {
 	w.dataBlock.finish()
-	bh, err := w.writeRawBlock(w.dataBlock.buf, db.CompressionNo)
+	bh, err := w.writeRawBlock(w.dataBlock.buf, db.NoCompression)
 	if err != nil {
 		w.err = err
 		log.Println("failed to write block, ", err)
@@ -130,7 +130,7 @@ func (w *Writer) Close() error {
 	w.finishPendingIndexBH(nil)
 
 	w.indexBlock.finish()
-	indexBH, err := w.writeRawBlock(w.indexBlock.buf, db.CompressionNo)
+	indexBH, err := w.writeRawBlock(w.indexBlock.buf, db.NoCompression)
 	if err != nil {
 		w.err = err
 		return w.err
@@ -152,6 +152,14 @@ func (w *Writer) Close() error {
 	w.err = errors.New("writer is closed")
 
 	return nil
+}
+
+func (w *Writer) EntriesLen() int {
+	return w.nEntries
+}
+
+func (w *Writer) BytesLen() int {
+	return int(w.offset)
 }
 
 func NewWriter(f *os.File, o *db.Options) *Writer {

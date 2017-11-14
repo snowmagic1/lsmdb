@@ -2,6 +2,7 @@ package lsmdb
 
 import (
 	"os"
+	"sync"
 
 	"github.com/snowmagic1/lsmdb/db"
 	"github.com/snowmagic1/lsmdb/storage"
@@ -15,6 +16,10 @@ type session struct {
 	storLock storage.Locker
 	keycmp   db.Comparer
 	o        *cachedOptions
+	tops     *tOps
+
+	stVersion *version
+	vMu       sync.Mutex
 }
 
 type cachedOptions struct {

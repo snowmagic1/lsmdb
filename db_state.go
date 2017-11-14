@@ -87,6 +87,37 @@ func (db *DB) getMems() (memdb, fmemdb *memDB) {
 	return db.memdb, db.frozenMemdb
 }
 
+func (db *DB) getEffectiveMem() *memDB {
+	db.memMu.RLock()
+	defer db.memMu.RUnlock()
+
+	if db.memdb != nil {
+		db.memdb.incref()
+	}
+
+	return db.memdb
+}
+
+func (db *DB) getFrozenMem() *memDB {
+	db.memMu.RLock()
+	defer db.memMu.RUnlock()
+
+	if db.frozenMemdb != nil {
+		db.frozenMemdb.incref()
+	}
+
+	return db.frozenMemdb
+}
+
+func (db *DB) dropFrozenMem() {
+	db.memMu.Lock()
+	defer db.memMu.Unlock()
+
+	// remove journal file
+	db.frozenMemdb.decref()
+	db.frozenMemdb = nil
+}
+
 func (db *DB) mpoolGet(n int) *memDB {
 	var mdb *memdb.DB
 	select {
