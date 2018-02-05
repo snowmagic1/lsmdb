@@ -5,11 +5,11 @@ A [levelDB](http:code.google.com/p/leveldb) style [LSM](https://en.wikipedia.org
 go get https://github.com/snowmagic1/lsmdb
 
 #### Features
-  * Keys and values are arbitrary byte arrays.
-  * Data is stored sorted by key.
-  * Callers can provide a custom comparison function to override the sort order.
-  * Multiple changes are merged into one batch
-  * Users can create a transient snapshot to get a consistent view of data.
+  * [Data model] Key-value store, the basic operations are Put(key, val), Get(key) and Delete(key)
+  * [Storage] LSM storage engine, skiplist is used for in-memory data, multi-level compaction
+  * [Snapshot isolation] Users can create a transient snapshot to get a consistent view of data
+  * [Concurrency] Different thread may write or read without any external synchoronization
+  * [High Performance]
   
 #### How to use
 
